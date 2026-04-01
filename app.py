@@ -1,4 +1,19 @@
     # app.py
+  from fastapi import FastAPI
+
+# Create FastAPI instance
+app = FastAPI()
+
+# Root endpoint
+@app.get("/")
+def read_root():
+    return {"message": "Hello, FastAPI is running!"}
+
+# Test endpoint
+@app.get("/ping")
+def ping():
+    return {"status": "pong"}  
+    
 import streamlit as st
 import psycopg2
 import toml
@@ -157,29 +172,30 @@ def load_chat_history():
     return messages
 
 
-#from logging_setup import log_api_response, log_api_error
+# Get response from OpenAI
+
 
 def get_response(messages):
-    """
-    Calls OpenAI API to generate a response based on conversation messages.
-    Handles API errors gracefully and logs events.
-    """
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages
         )
+
         reply = response.choices[0].message.content
 
-        # Log successful API call
-        log_api_response()
+        logger.info("OpenAI response generated")
 
         return reply
 
     except Exception as e:
-        # Log API failure
-        log_api_error(e)
+
+        logger.error(f"OpenAI API error: {e}")
+
         return "Sorry, something went wrong."
+
+
 # --- Streamlit UI ---
 st.title("AI Chatbot")
 
