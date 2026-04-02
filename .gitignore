@@ -1,4 +1,7 @@
+
 .secrets.toml
 logs
 .env
 test.py
+# Python virtual environment
+venv/
