@@ -1,7 +1,33 @@
-
-.secrets.toml
-logs
-.env
 test.py
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Streamlit / logs
+logs/
+*.log
+
+# Secrets / configs
+config.toml
+.env
+
 # Python virtual environment
 venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.pysach
+
+# Python egg / distribution
+*.egg-info/
+dist/
+build/
+
