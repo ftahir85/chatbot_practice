@@ -1,9 +1,0 @@
-[development]
-db_host = "localhost"
-db_name = "chatbot_dev"
-log_file = "logs/dev_app.log"
-
-[production]
-db_host = "prod-db-host"
-db_name = "chatbot_prod"
-log_file = "logs/prod_app.log"
