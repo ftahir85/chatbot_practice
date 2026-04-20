@@ -1,0 +1,253 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #343541;
+  color: white;
+}
+
+/* ===================== APP LAYOUT ===================== */
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ===================== SIDEBAR ===================== */
+
+.sidebar {
+  width: 260px;
+  background: #202123;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-right: 1px solid #2f2f2f;
+}
+
+/* New chat button */
+.new-chat-btn {
+  background: #343541;
+  border: 1px solid #444;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: 0.2s;
+}
+
+.new-chat-btn:hover {
+  background: #40414f;
+}
+
+/* Chat list */
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+/* Chat item */
+.chat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.chat-item:hover {
+  background: #2a2b32;
+}
+
+.chat-item.active {
+  background: #343541;
+}
+
+/* Chat title */
+.chat-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Delete button */
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  opacity: 0;
+  transition: 0.2s;
+}
+
+.chat-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  color: red;
+}
+
+/* ===================== CHAT WINDOW ===================== */
+
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #343541;
+  /* 🔴 FIX: prevents unwanted centering */
+  text-align: left;
+}
+
+/* Messages area */
+.messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+
+  /* 🔴 FIX: IMPORTANT */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* prevents centering bug */
+  gap: 12px;
+}
+
+/* ===================== MESSAGES ===================== */
+
+.user,
+.assistant {
+  max-width: 70%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  white-space: pre-wrap; /* 🔥 FIX for Markdown line breaks */
+}
+
+/* User message */
+.user {
+  align-self: flex-end;
+  background: #4fc3f7;
+  color: black;
+  text-align: left;
+}
+
+/* AI message */
+.assistant {
+  align-self: flex-start;
+  background: #444654;
+  color: white;
+  text-align: left;
+}
+
+/* ===================== MARKDOWN FIX ===================== */
+
+.assistant p,
+.user p {
+  margin: 4px 0;
+}
+
+.assistant ul,
+.assistant ol {
+  margin-left: 20px;
+}
+
+/* ===================== INPUT AREA ===================== */
+
+.input-box {
+  display: flex;
+  padding: 12px;
+  background: #40414f;
+  border-top: 1px solid #2f2f2f;
+}
+
+/* Input field */
+.input-box input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background: #2a2b32;
+  color: white;
+  margin-right: 10px;
+}
+
+/* Send button */
+.input-box button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #19c37d;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.input-box button:hover {
+  background: #17a96b;
+}
+
+.input-box button:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+/* ===================== SCROLLBAR ===================== */
+
+.messages::-webkit-scrollbar,
+.chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb,
+.chat-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 10px;
+}
+.top-welcome {
+  text-align: center;
+  padding: 18px;
+  border-bottom: 1px solid #2f2f2f;
+  background: #343541;
+}
+
+.logo-big {
+  font-size: 42px;
+  margin-bottom: 6px;
+}
+
+.welcome-title {
+  font-size: 22px;
+  font-weight: bold;
+  background: linear-gradient(45deg, #4fc3f7, #19c37d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+  font-size: 13px;
+  color: #aaa;
+  margin-top: 5px;
+}
+.section-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 10px 0 5px 5px;
+
+  /* ✨ COLOR EFFECT */
+  background: linear-gradient(90deg, #4fc3f7, #19c37d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
