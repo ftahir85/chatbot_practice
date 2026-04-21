@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000";
+// Change this line:
+const API_BASE = "/api"; 
 
 export const sendMessage = async (message) => {
   const res = await axios.post(`${API_BASE}/chat`, {

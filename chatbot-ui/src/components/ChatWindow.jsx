@@ -45,7 +45,7 @@ export default function ChatWindow({
     updateMessages(updatedMessages);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat-stream", {
+      const res = await fetch("/api/chat-stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
