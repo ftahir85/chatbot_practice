@@ -13,7 +13,6 @@ export default function ChatWindow({
     return <div className="chat-window">Select or create a chat</div>;
   }
 
-  // ✨ NEW: Top Welcome Header
   const WelcomeHeader = () => (
     <div className="top-welcome">
       <div className="logo-big">✨💬</div>
@@ -25,19 +24,20 @@ export default function ChatWindow({
   );
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
-    const message = input;
+    const message = input.trim();
+    const existingMessages = [...chat.messages];
+
     setInput("");
     setLoading(true);
 
-    // ✅ Update chat title on first message
-    if (chat.messages.length === 0) {
+    if (existingMessages.length === 0) {
       updateChatTitle(message);
     }
 
     let updatedMessages = [
-      ...chat.messages,
+      ...existingMessages,
       { role: "user", content: message },
       { role: "assistant", content: "" },
     ];
@@ -45,31 +45,27 @@ export default function ChatWindow({
     updateMessages(updatedMessages);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat-stream", {
+      const res = await fetch("/api/chat-stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({
+          message,
+          chat_id: chat.id,
+        }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
+
       if (!res.body) {
-        const data = await res.json();
-
-        updatedMessages = [
-          ...chat.messages,
-          { role: "user", content: message },
-          { role: "assistant", content: data.response },
-        ];
-
-        updateMessages(updatedMessages);
-        setLoading(false);
-        return;
+        throw new Error("No response body from server");
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-
       let botText = "";
 
       while (true) {
@@ -79,33 +75,43 @@ export default function ChatWindow({
         botText += decoder.decode(value, { stream: true });
 
         updatedMessages = [
-          ...chat.messages,
+          ...existingMessages,
           { role: "user", content: message },
           { role: "assistant", content: botText },
         ];
 
         updateMessages(updatedMessages);
       }
+
+      botText += decoder.decode();
+
+      updatedMessages = [
+        ...existingMessages,
+        { role: "user", content: message },
+        {
+          role: "assistant",
+          content: botText || "No response received.",
+        },
+      ];
+
+      updateMessages(updatedMessages);
     } catch (err) {
       console.error("Error:", err);
 
       updateMessages([
-        ...chat.messages,
+        ...existingMessages,
         { role: "user", content: message },
         { role: "assistant", content: "Error getting response." },
       ]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <div className="chat-window">
-
-      {/* ✨ NEW TOP HEADER */}
       <WelcomeHeader />
 
-      {/* MESSAGES */}
       <div className="messages">
         {chat.messages.map((m, i) => (
           <div key={i} className={m.role}>
@@ -114,15 +120,17 @@ export default function ChatWindow({
         ))}
       </div>
 
-      {/* INPUT */}
       <div className="input-box">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type message..."
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage();
+          }}
+          disabled={loading}
         />
-        <button onClick={sendMessage} disabled={loading}>
+        <button onClick={sendMessage} disabled={loading || !input.trim()}>
           {loading ? "Thinking..." : "Send"}
         </button>
       </div>
