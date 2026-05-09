@@ -1,0 +1,10 @@
+version: "2"
+authtoken: 3BnGF8Vpf0HA0PrbENl2fzk4mJp_2HXZWRaFe6u3jGSfSK8P
+tunnels:
+  frontend:
+    proto: http
+    addr: 5173
+    host_header: localhost:5173
+  backend:
+    proto: http
+    addr: 8000

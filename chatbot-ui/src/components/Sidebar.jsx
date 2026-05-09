@@ -1,17 +1,15 @@
 export default function Sidebar({
   conversations,
   createNewChat,
-  setActiveId,
+  loadChatHistory,
   deleteChat,
   activeId,
 }) {
   return (
     <div className="sidebar">
-
       {/* HEADER */}
       <div className="sidebar-header">
         <div className="logo">💬</div>
-        
       </div>
 
       {/* NEW CHAT BUTTON */}
@@ -19,7 +17,7 @@ export default function Sidebar({
         + New Chat
       </button>
 
-      {/* RECENTS (UPDATED LOOK) */}
+      {/* RECENTS */}
       <div className="section-title">✨ Recents</div>
 
       {/* CHAT LIST */}
@@ -27,13 +25,10 @@ export default function Sidebar({
         {conversations.map((chat) => (
           <div
             key={chat.id}
-            className={`chat-item ${
-              activeId === chat.id ? "active" : ""
-            }`}
-            onClick={() => setActiveId(chat.id)}
+            className={`chat-item ${activeId === chat.id ? "active" : ""}`}
+            onClick={() => loadChatHistory(chat.id)}
           >
             <span className="chat-title">{chat.title}</span>
-
             <button
               className="delete-btn"
               onClick={(e) => {
@@ -46,7 +41,6 @@ export default function Sidebar({
           </div>
         ))}
       </div>
-
     </div>
   );
 }
