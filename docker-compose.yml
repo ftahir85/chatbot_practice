@@ -1,0 +1,67 @@
+services:
+
+  # ─── Backend (FastAPI) ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${DOCKER_ENV:-development}
+    container_name: chatbot_backend
+    env_file:
+      - .env
+    environment:
+      DOCKER_ENV: ${DOCKER_ENV:-development}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-chatbot_dev}
+    volumes:
+      - ./backend:/app:cached
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  # ─── Frontend (React + Vite) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./chatbot-ui
+      dockerfile: Dockerfile
+      target: ${DOCKER_ENV:-development}
+    container_name: chatbot_frontend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./chatbot-ui:/app:cached
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    profiles: ["dev"]
+
+  # ─── Database (PostgreSQL) ────────────────────────────────────────
+  db:
+    image: postgres:15
+    container_name: chatbot_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot_dev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-chatbot_dev}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - chatbot_db_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d/migrations
+      - ./db/scripts/apply_migrations.sh:/docker-entrypoint-initdb.d/apply_migrations.sh
+    ports:
+      - "5433:5432"
+
+volumes:
+  chatbot_db_data:
