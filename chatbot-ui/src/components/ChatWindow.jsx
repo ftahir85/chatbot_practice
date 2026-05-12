@@ -20,13 +20,35 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const messagesEndRef = useRef(null);
+  
+  // Use a ref to store the current audio object
+  const currentAudio = useRef(null);
+
+  // MASTER STOP FUNCTION
+  const stopAllAudio = () => {
+    if (currentAudio.current) {
+      currentAudio.current.pause();
+      currentAudio.current.src = ""; // Force clear the source
+      currentAudio.current.load();
+      currentAudio.current = null;
+    }
+    // Also cancel Web Speech API just in case it's being used elsewhere
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
 
   useEffect(() => {
+    // Stop audio immediately when switching chats
+    stopAllAudio();
+
     if (!chat?.id) return;
     fetchWithNgrok(`${API_BASE}/history/${chat.id}`)
       .then((res) => res.json())
       .then((data) => updateMessages(data))
       .catch((err) => console.error("Failed to load history:", err));
+    
+    return () => stopAllAudio();
   }, [chat?.id]);
 
   useEffect(() => {
@@ -50,7 +72,6 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
-
       mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorder.onstop = async () => {
         if (streamRef.current) {
@@ -71,7 +92,6 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
           console.error("Transcription error:", err);
         }
       };
-
       mediaRecorder.start();
       setRecording(true);
     } catch (err) {
@@ -88,13 +108,24 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
 
   const speakResponse = async (text) => {
     try {
+      stopAllAudio(); // Kill any currently playing audio before starting new one
       const res = await fetchWithNgrok(`${API_BASE}/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
       const blob = await res.blob();
-      new Audio(URL.createObjectURL(blob)).play();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudio.current = audio;
+      
+      // Auto-clean up the URL after playing to prevent memory leaks
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        currentAudio.current = null;
+      };
+      
+      audio.play();
     } catch (err) {
       console.error("TTS error:", err);
     }
@@ -102,6 +133,9 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
+    
+    stopAllAudio(); // Kill audio when a new message is sent
+
     const message = input.trim();
     const existingMessages = [...chat.messages];
     setInput("");
@@ -124,8 +158,6 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
       });
 
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-      if (!res.body) throw new Error("No response body");
-
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let botText = "";
@@ -151,65 +183,52 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
       if (botText) await speakResponse(botText);
     } catch (err) {
       console.error("Error:", err);
-      updateMessages([
-        ...existingMessages,
-        { role: "user", content: message },
-        { role: "assistant", content: "Error getting response." },
-      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-800 h-screen">
-      
-      {/* HEADER */}
+    <div className="flex-1 flex flex-col bg-gray-800 h-screen relative">
+      {/* ADDED: Manual Stop Audio Button (Top Right) */}
+      {loading === false && (
+         <button 
+           onClick={stopAllAudio}
+           className="absolute top-4 right-4 z-50 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-full text-xs transition-all border border-red-500/50"
+         >
+           Stop Audio 🔇
+         </button>
+      )}
+
       <div className="flex items-center justify-center gap-3 py-4 border-b border-gray-700 bg-gray-900">
         <span className="text-3xl">✨</span>
         <div className="text-center">
           <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
             ChatBOT
           </h1>
-          <p className="text-xs text-gray-400">Ask me anything — I can help with explanations, coding, writing and more.</p>
+          <p className="text-xs text-gray-400">Ask me anything — I can help with explanations, coding, and more.</p>
         </div>
         <span className="text-3xl">💬</span>
       </div>
 
-      {/* MESSAGES */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {chat.messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <p>Send a message to start the conversation...</p>
-          </div>
-        )}
         {chat.messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-cyan-500 text-black rounded-br-sm"
-                  : "bg-gray-700 text-white rounded-bl-sm"
-              }`}
-            >
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${m.role === "user" ? "bg-cyan-500 text-black rounded-br-sm" : "bg-gray-700 text-white rounded-bl-sm"}`}>
               <ReactMarkdown>{m.content}</ReactMarkdown>
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-gray-700 text-white px-4 py-3 rounded-2xl rounded-bl-sm text-sm">
-              <span className="animate-pulse">Thinking...</span>
+            <div className="bg-gray-700 text-white px-4 py-3 rounded-2xl rounded-bl-sm text-sm animate-pulse">
+              Thinking...
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* INPUT */}
       <div className="px-4 py-4 border-t border-gray-700 bg-gray-900">
         <div className="flex items-center gap-2 bg-gray-700 rounded-2xl px-4 py-2">
           <input
@@ -217,33 +236,13 @@ export default function ChatWindow({ chat, updateMessages, updateChatTitle }) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type or hold 🎤 to speak..."
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            disabled={loading}
-            className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-sm py-1"
+            className="flex-1 bg-transparent text-white outline-none text-sm py-1"
           />
-
-          {/* MIC BUTTON */}
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            disabled={loading}
-            className={`p-2 rounded-xl transition-all duration-200 text-lg ${
-              recording
-                ? "bg-red-500 text-white"
-                : "bg-gray-600 hover:bg-gray-500 text-white"
-            }`}
-          >
+          <button onMouseDown={startRecording} onMouseUp={stopRecording} className={`p-2 rounded-xl ${recording ? "bg-red-500" : "bg-gray-600"}`}>
             {recording ? "🔴" : "🎤"}
           </button>
-
-          {/* SEND BUTTON */}
-          <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-all duration-200"
-          >
-            {loading ? "..." : "Send"}
+          <button onClick={sendMessage} className="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-xl">
+            Send
           </button>
         </div>
       </div>
